@@ -37,8 +37,8 @@ def get_entries():
 
     for i in entries_idxes:
         stdout = exec_command('cfgcmd get ' + ROOT_PATH + '.RestRules.' + i)
-        if stdout is str:
-            entry = parse_rule_entry(int(i), stdout)
+        entry = parse_rule_entry(int(i), stdout)
+        if entry:
             entries.append(entry)
 
     return entries
@@ -64,10 +64,8 @@ def parse_rule_entry_line(line, entry):
 
     splitted = line.split('.')
     if len(splitted) != 5:
-        raise ValueError('The line received does not have the expected section count of 5. Got ' + stdout.read().decode())
-
-    if is_verbose:
-        print('> Got line: ' + line)
+        print('The line received does not have the expected section count of 5. Got ' + line)
+        return None
 
     entryVar = splitted[len(splitted)-1].strip('\n')
 
@@ -109,7 +107,7 @@ def exec_command(command_string, can_error=True):
 def remove_entry(entry):
     index = entry.index
     cmd = 'ebtables -t filter -D TIME_RESTRICT -s ' + entry.mac_address + ' --timeblock ' + entry.time_from + '-' + entry.time_to + ' --weekdays ' + entry.days + ' -j DROP'
-    exec_command(cmd)
+    exec_command(cmd, False)
     if is_verbose:
         print('> Sent ebtable delete command. ' + cmd);
         print('> ebtables -L is now: ' + exec_command('ebtables -L TIME_RESTRICT').read().decode())
@@ -123,9 +121,8 @@ def remove_entry(entry):
     # deleteLine = stdout.read().decode()
     # deleteLine = deleteLine[2:-1]
     # exec_command(deleteLine)
-    
-    if is_verbose:
-        print('> Sent delete line: ' + deleteLine);
+    #if is_verbose:
+    #    print('> Sent delete line: ' + deleteLine);
 
     cmd = 'sed -i /^' + str(index) + '\>/d /tmp/.timerestrict.rule'
     exec_command(cmd)
