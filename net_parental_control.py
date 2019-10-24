@@ -332,7 +332,7 @@ def main():
     elif args.remove:
         index = int(args.remove)
         entry = get_entry_by_index(entries, index)
-        remove_entry(entry, index)
+        remove_entry(entry)
 
     client.close()
 
