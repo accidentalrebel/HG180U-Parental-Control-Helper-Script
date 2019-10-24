@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+
+# A python script to manage the Parental Control system of a HG180u PLDT Home DSL router.
+# Juan Karlo Licudine. 2019. accidentalrebel@gmail.com
+
 import paramiko
 import argparse
 import subprocess
