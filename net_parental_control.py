@@ -289,7 +289,7 @@ def main():
         is_verbose = True
 
     client = paramiko.SSHClient()
-    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(ROUTER_URL, username=args.user, password=args.password)
     if is_verbose:
         print('Client connecting connect to ' + ROUTER_URL + ' with ' + args.user + ' and ' + args.password)
