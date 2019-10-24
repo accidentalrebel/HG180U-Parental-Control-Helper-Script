@@ -37,8 +37,9 @@ def get_entries():
 
     for i in entries_idxes:
         stdout = exec_command('cfgcmd get ' + ROOT_PATH + '.RestRules.' + i)
-        entry = parse_rule_entry(int(i), stdout)
-        entries.append(entry)
+        if stdout is str:
+            entry = parse_rule_entry(int(i), stdout)
+            entries.append(entry)
 
     return entries
 
@@ -94,13 +95,13 @@ def parse_rule_entry_line(line, entry):
 
     return entry
 
-def exec_command(command_string):
+def exec_command(command_string, can_error=True):
     if is_verbose:
         print('> Sending command string: ' + command_string)
         
     stdin, stdout, stderr = client.exec_command(command_string)
     exit_status = stdout.channel.recv_exit_status()
-    if exit_status > 0:
+    if can_error and exit_status > 0:
         raise ValueError('Error with exec_command. Returned exit_status of ' + str(exit_status))
 
     return stdout
@@ -138,7 +139,7 @@ def remove_entry(entry):
 
     print('> Done')
 
-def parse_add_entry(entry_string):
+def parse_add_entry(entry_string, json_file):
     splitted = entry_string.split(' ')
     if len(splitted) != 3:
         raise ValueError('Incorrect entry format. ' + FORMAT_HELP)
@@ -146,8 +147,8 @@ def parse_add_entry(entry_string):
     entry = Entry()
     entry.username = splitted[0]
 
-    if j:
-        entry.mac_address = j[entry.username]
+    if json_file:
+        entry.mac_address = json_file[entry.username]
         
     if not entry.mac_address:
         raise ValueError('Was not able to get the mac address for user ' + entry.username)
@@ -179,7 +180,7 @@ def add_entry_at_index(entry, index):
         print('> Adding entry ' + entry.username + ' at index ' + str(index))
 
     cmd = 'ebtables -t filter -A TIME_RESTRICT -s ' + entry.mac_address + ' --timeblock ' + entry.time_from + '-' + entry.time_to + ' --weekdays ' + entry.days + ' -j DROP'
-    exec_command(cmd)
+    exec_command(cmd, False)
     if is_verbose:
         print('> Sent ebtables add command. ' + cmd)
         print('> ebtables -L is now: ' + exec_command('ebtables -L TIME_RESTRICT').read().decode())
@@ -237,7 +238,10 @@ def get_available_index(entries):
             return i
         i = i + 1
 
-    return indexes[len(indexes)-1] + 1
+    if len(indexes) <= 0:
+        return 1
+    else:
+        return indexes[len(indexes)-1] + 1
 
 def enable_mode(is_enabled):
     cmd = ''
@@ -284,6 +288,7 @@ def main():
 
     args = parser.parse_args()
 
+    global is_verbose
     is_verbose = False
     if args.verbose:
         is_verbose = True
@@ -297,12 +302,13 @@ def main():
     if args.devices:
         with open(args.devices, 'r') as f:
             file_string = f.read()
-            j = json.loads(file_string)
+            if is_verbose:
+                print('file_string: ' + file_string)
+            json_file = json.loads(file_string)
 
     entries = get_entries()
     if len(entries) <= 0:
-        raise ValueError('There are no available entries.')
-
+        print('There are no available entries.')
 
     if args.list:
         i = 0
@@ -314,7 +320,7 @@ def main():
         if not args.devices:
             raise ValueError('-a option should be run with -d.');
 
-        entry = parse_add_entry(args.add)
+        entry = parse_add_entry(args.add, json_file)
         available_index = get_available_index(entries)
         entry.index = available_index
 
