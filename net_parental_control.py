@@ -255,14 +255,23 @@ def enable_mode(is_enabled):
     if is_verbose:
         print('> Sent the command ' + cmd)
 
+def get_enable():
+    cmd = 'cfgcmd get ' + ROOT_PATH + '.Enable 0'
+    val = exec_command(cmd)
+    print(val.read().decode())
+
 def main():
     global client
     
     parser = argparse.ArgumentParser()
     parser.add_argument('-e',
                         '--enable',
-                        help='Enable the parental control. Only accepts "0" or "1"',
+                        help='Enable the parental control. Only accepts "0" or "1".',
                         action='store')
+    parser.add_argument('-E',
+                        '--getenable',
+                        help='Gets and prints the enable value.',
+                        action='store_true')
     parser.add_argument('-l',
                         '--list',
                         help='Lists the entries.',
@@ -312,7 +321,9 @@ def main():
     if len(entries) <= 0:
         print('There are no available entries.')
 
-    if args.list:
+    if args.getenable:
+        get_enable()
+    elif args.list:
         i = 0
         for entry in entries:
             print_entry(entry)
