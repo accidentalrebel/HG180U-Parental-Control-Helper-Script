@@ -54,6 +54,13 @@ def get_entry_by_index(entries, index):
             return entry
     return None
 
+def get_entries_by_user(entries, username):
+    e = []
+    for entry in entries:
+        if entry.username == username:
+            e.append(entry)
+    return e
+
 def parse_rule_entry(index, entry_string):
     entry = Entry()
     entry.index = index
@@ -117,7 +124,7 @@ def remove_entry(entry):
         print('> Sent ebtable delete command. ' + cmd);
         print('> ebtables -L is now: ' + exec_command('ebtables -L TIME_RESTRICT').read().decode())
     
-    stdout = exec_command('sed -n /^' + str(index) + '\>/p /tmp/.timerestrict.rule')
+    stdout = exec_command('sed -n /^' + str(index) + '\>/p /tmp/.timerestrict.rule', False)
     if is_verbose:
         print('> Removed entry from .timerestrict.rule if it exists')
 
@@ -130,7 +137,7 @@ def remove_entry(entry):
     #    print('> Sent delete line: ' + deleteLine);
 
     cmd = 'sed -i /^' + str(index) + '\>/d /tmp/.timerestrict.rule'
-    exec_command(cmd)
+    exec_command(cmd, False)
     if is_verbose:
         print('> Deleted timerestrict.rule entry. ' + cmd);
 
@@ -290,7 +297,7 @@ def main():
                         action='store')
     parser.add_argument('-r',
                         '--remove',
-                        help='Remove an entry by specifying the entry number.',
+                        help='Remove an entry by specifying the entry number or user name',
                         action='store')
     parser.add_argument('user',
                         help='The username to sign in using SSH.')
@@ -349,9 +356,15 @@ def main():
             is_enabled = True
         enable_mode(is_enabled)
     elif args.remove:
-        index = int(args.remove)
-        entry = get_entry_by_index(entries, index)
-        remove_entry(entry)
+        if args.remove.isdecimal():
+            index = int(args.remove)
+            entry = get_entry_by_index(entries, index)
+            remove_entry(entry)
+        else:
+            username = args.remove
+            es = get_entries_by_user(entries, username)
+            for entry in es:
+                remove_entry(entry)
 
     client.close()
 
