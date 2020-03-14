@@ -313,11 +313,13 @@ def main():
                         '--devices',
                         help='Specify path of the devices.json file to use',
                         action='store')
+    parser.add_argument('-f',
+                        '--profiles',
+                        help='Specify path of the profiles.json file to use',
+                        action='store')
     parser.add_argument('-p',
                         '--profile',
-                        nargs=2,
-                        metavar=('profile_to_use', 'path_to_profile'),
-                        help='Specify the profile ot use and the path of the profiles.json file to use',
+                        help='Specify the profile to use. Must be used with -f.',
                         action='store')
     parser.add_argument('-a',
                         '--add',
@@ -357,7 +359,8 @@ def main():
         print('There are no available entries.')
 
     if args.profile:
-        profile_to_use, path_to_profile = args.profile
+        path_to_profile = args.profiles
+        profile_to_use = args.profile
         with open(path_to_profile, 'r') as f:
             file_string = f.read()
             if is_verbose:
