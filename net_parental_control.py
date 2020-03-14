@@ -267,6 +267,23 @@ def get_enable():
     val = exec_command(cmd)
     print(val.read().decode())
 
+def add_entry(entries, entry_string, devices_file, index):
+    entry = parse_add_entry(entry_string, devices_file)
+
+    if index != None:
+        available_index = index
+    else:
+        available_index = get_available_index(entries)
+    
+    entry.index = available_index
+
+    if is_verbose:
+        print('Adding entry')
+        print_entry(entry)
+
+    print('Available index is ' + str(available_index))
+    add_entry_at_index(entry, available_index)
+    
 def remove_all_entries(entries, username):
     es = get_entries_by_user(entries, username)
     for entry in es:
@@ -355,6 +372,16 @@ def main():
             if is_verbose:
                 print('All entries for ' + user + ' have been removed.')
 
+        i = 1
+        for user in users:
+            user = user.strip()
+            entry_string = user + " " + entry['days'] + " " + entry['times']
+            if is_verbose:
+                print('Generated entry string: ' + entry_string)
+
+            add_entry(entries, entry_string, devices_file, i)
+            i = i + 1
+
     if args.getenable:
         get_enable()
     elif args.list:
@@ -367,16 +394,7 @@ def main():
         if not args.devices:
             raise ValueError('-a option should be run with -d.');
 
-        entry = parse_add_entry(args.add, devices_file)
-        available_index = get_available_index(entries)
-        entry.index = available_index
-
-        if is_verbose:
-            print('Adding entry')
-            print_entry(entry)
-
-        print('Available index is ' + str(available_index))
-        add_entry_at_index(entry, available_index)
+        add_entry(entries, args.add, devices_file)
     elif args.enable:
         is_enabled = False
         if args.enable == '1':
