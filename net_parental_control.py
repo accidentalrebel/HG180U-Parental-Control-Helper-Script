@@ -10,7 +10,7 @@ import json
 
 ROUTER_URL = '192.168.1.1'
 ROOT_PATH = 'InternetGatewayDevice.TimeRestriction'
-FORMAT_HELP = 'The format should be: username Mon,Tue,Wed,Thu,Fri,Sat 08:00-19:00'
+FORMAT_HELP = 'The format should be: username Mon,Tue,Wed,Thu,Fri,Sat 21:00-23:59'
 
 is_verbose = False
 
@@ -148,7 +148,7 @@ def remove_entry(entry):
 
     print('> Done')
 
-def parse_add_entry(entry_string, json_file):
+def parse_add_entry(entry_string, devices_file):
     splitted = entry_string.split(' ')
     if len(splitted) != 3:
         raise ValueError('Incorrect entry format. ' + FORMAT_HELP)
@@ -156,8 +156,8 @@ def parse_add_entry(entry_string, json_file):
     entry = Entry()
     entry.username = splitted[0]
 
-    if json_file:
-        entry.mac_address = json_file[entry.username]
+    if devices_file:
+        entry.mac_address = devices_file[entry.username]
         
     if not entry.mac_address:
         raise ValueError('Was not able to get the mac address for user ' + entry.username)
@@ -267,6 +267,11 @@ def get_enable():
     val = exec_command(cmd)
     print(val.read().decode())
 
+def remove_all_entries(entries, username):
+    es = get_entries_by_user(entries, username)
+    for entry in es:
+        remove_entry(entry)
+
 def main():
     global client
     
@@ -290,6 +295,12 @@ def main():
     parser.add_argument('-d',
                         '--devices',
                         help='Specify path of the devices.json file to use',
+                        action='store')
+    parser.add_argument('-p',
+                        '--profile',
+                        nargs=2,
+                        metavar=('profile_to_use', 'path_to_profile'),
+                        help='Specify the profile ot use and the path of the profiles.json file to use',
                         action='store')
     parser.add_argument('-a',
                         '--add',
@@ -322,11 +333,27 @@ def main():
             file_string = f.read()
             if is_verbose:
                 print('file_string: ' + file_string)
-            json_file = json.loads(file_string)
+            devices_file = json.loads(file_string)
 
     entries = get_entries()
     if len(entries) <= 0:
         print('There are no available entries.')
+
+    if args.profile:
+        profile_to_use, path_to_profile = args.profile
+        with open(path_to_profile, 'r') as f:
+            file_string = f.read()
+            if is_verbose:
+                print('file_string: ' + file_string)
+            profiles_file = json.loads(file_string)
+
+        entry = profiles_file[profile_to_use]
+        users = entry['users'].split(',')
+        for user in users:
+            user = user.strip()
+            remove_all_entries(entries, user)
+            if is_verbose:
+                print('All entries for ' + user + ' have been removed.')
 
     if args.getenable:
         get_enable()
@@ -340,7 +367,7 @@ def main():
         if not args.devices:
             raise ValueError('-a option should be run with -d.');
 
-        entry = parse_add_entry(args.add, json_file)
+        entry = parse_add_entry(args.add, devices_file)
         available_index = get_available_index(entries)
         entry.index = available_index
 
@@ -362,9 +389,7 @@ def main():
             remove_entry(entry)
         else:
             username = args.remove
-            es = get_entries_by_user(entries, username)
-            for entry in es:
-                remove_entry(entry)
+            remove_all_entries(entries, username)
 
     client.close()
 
